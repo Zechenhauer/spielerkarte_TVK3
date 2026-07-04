@@ -1,20 +1,26 @@
-body { background-color: #0f172a; color: #f3f4f6; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 20px; margin: 0; }
+body { background-color: #0f172a; color: #f3f4f6; font-family: sans-serif; margin: 0; padding: 20px; }
+.app-wrapper { max-width: 600px; margin: 0 auto; }
 header { text-align: center; margin-bottom: 25px; }
 header h1 { color: #f59e0b; margin-bottom: 5px; }
 header p { color: #9ca3af; font-size: 0.9rem; }
 
-.player-card { background: #1e293b; border-radius: 12px; padding: 20px; margin-bottom: 20px; border: 1px solid #334155; }
-.header h1 { font-size: 1.4rem; color: #ffffff; margin: 0; }
-.header p { color: #10b981; font-size: 0.8rem; font-weight: bold; margin-bottom: 15px; }
+.player-card { 
+    background: #1e293b; 
+    border-radius: 12px; 
+    padding: 20px; 
+    margin-bottom: 20px; 
+    border: 1px solid #334155; 
+}
+.header h1 { font-size: 1.3rem; color: #ffffff; margin: 0; }
+.header p { color: #10b981; font-size: 0.75rem; font-weight: bold; margin-bottom: 15px; }
 
-.stats-grid { display: flex; gap: 20px; }
-.col { flex: 1; }
-.label { font-size: 0.65rem; color: #9ca3af; margin: 10px 0 5px; text-transform: uppercase; }
-.value-big { font-size: 1.2rem; font-weight: bold; }
-.value-avg { font-size: 1.3rem; color: #f59e0b; font-weight: bold; }
+.stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.label { font-size: 0.6rem; color: #9ca3af; margin: 10px 0 2px; text-transform: uppercase; }
+.value-big { font-size: 1.1rem; font-weight: bold; }
+.value-avg { font-size: 1.2rem; color: #f59e0b; font-weight: bold; }
 
-.progress-bg { background: #334155; height: 8px; border-radius: 4px; margin-top: 5px; }
-.progress-bar { height: 100%; border-radius: 4px; }
+.progress-bg { background: #334155; height: 6px; border-radius: 3px; margin-top: 4px; }
+.progress-bar { height: 100%; border-radius: 3px; }
 .green { background: #10b981; }
 .blue { background: #3b82f6; }
 .red { color: #ef4444; }

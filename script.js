@@ -1,27 +1,43 @@
-const CSV_URL = "https://docs.google.com/spreadsheets/d/1Sqq7iwE5ZcPbqO4J8A2rv3SLoZz8Mpyj9sj2tcAmZ8U/export?format=csv&gid=0";
+// Lädt die Datei direkt aus deinem GitHub-Ordner
+const CSV_URL = "daten.csv";
+
+function csvToArray(text) {
+    let p = '', c = '', r = [];
+    let q = false;
+    let row = [''];
+    for (let i=0; i<text.length; i++) {
+        c = text[i];
+        if (c === '"') { q = !q; }
+        else if (c === ',' && !q) { row.push(''); }
+        else if ((c === '\r' || c === '\n') && !q) {
+            if (c === '\r' && text[i+1] === '\n') { i++; }
+            r.push(row);
+            row = [''];
+        } else { row[row.length-1] += c; }
+    }
+    if (row.length > 1 || row[0] !== '') { r.push(row); }
+    return r;
+}
 
 function parseDartsCSV(text) {
-    // Zeilen trennen und leere Zeilen entfernen
     const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0);
     const spielerListe = [];
     
     let aktuellerSpieler = null;
 
     lines.forEach(line => {
-        // Ignoriere die Einleitungstexte aus der Excel/CSV
+        // Ignoriere Einleitungstexte
         if (line.startsWith('"') || line.includes("darstellung des aufbaus")) return;
 
-        // Wenn kein Komma da ist, handelt es sich um eine Zeile mit einem Spielernamen
         if (!line.includes(',')) {
             if (aktuellerSpieler) {
-                // Vorherigen Spieler speichern, wenn er zur Mannschaft 3 gehört
+                // Filtere auf TV Kapellen 3
                 if (aktuellerSpieler.mannschaft === "3") {
                     spielerListe.push(aktuellerSpieler);
                 }
             }
-            // Neuen Spieler anlegen
             aktuellerSpieler = {
-                name: line.replace(/"/g, ''), // Anführungszeichen entfernen
+                name: line.replace(/"/g, ''),
                 mannschaft: "",
                 matches: 0,
                 siege: 0,
@@ -31,7 +47,6 @@ function parseDartsCSV(text) {
                 avg: 0.0
             };
         } else {
-            // Zeile aufteilen in Label und Wert
             const parts = line.split(',');
             const label = parts[0].trim().toLowerCase();
             const value = parts[1] ? parts[1].trim().replace(/"/g, '') : "";
@@ -48,7 +63,6 @@ function parseDartsCSV(text) {
         }
     });
 
-    // Den letzten Spieler in der Schleife ebenfalls hinzufügen
     if (aktuellerSpieler && aktuellerSpieler.mannschaft === "3") {
         spielerListe.push(aktuellerSpieler);
     }
@@ -116,7 +130,10 @@ function generiereKarten(spielerDaten) {
 
 function ladeDaten() {
     fetch(CSV_URL)
-        .then(response => response.text())
+        .then(response => {
+            if (!response.ok) throw new Error("Datei konnte nicht geladen werden");
+            return response.text();
+        })
         .then(data => {
             const spieler = parseDartsCSV(data);
             generiereKarten(spieler);
@@ -125,7 +142,7 @@ function ladeDaten() {
             console.error('Fehler beim Laden:', error);
             const wrapper = document.getElementById('app-wrapper');
             if (wrapper) {
-                wrapper.innerHTML = '<p style="grid-column: 1/-1; text-align:center; color:#ef4444;">Fehler beim Laden der Live-Daten.</p>';
+                wrapper.innerHTML = '<p style="grid-column: 1/-1; text-align:center; color:#ef4444;">Fehler beim Laden der Spieldaten im Repository.</p>';
             }
         });
 }

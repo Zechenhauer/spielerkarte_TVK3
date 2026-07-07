@@ -5,12 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TV Kapellen 3 - Kader</title>
     <style>
-        /* Das komplette Design direkt integriert */
         :root {
             --bg-dark: #121212;
             --card-bg: #1e1e1e;
             --text-main: #ffffff;
             --text-muted: #a0a0a0;
+            --accent-orange: #ffb74d;
             --accent-green: #2e7d32;
             --accent-blue: #1565c0;
             --border-color: #333333;
@@ -78,6 +78,7 @@
         .player-card h2 {
             font-size: 1.4rem;
             font-weight: 700;
+            color: var(--accent-orange);
             margin-bottom: 0.25rem;
             white-space: nowrap;
             overflow: hidden;
@@ -119,13 +120,13 @@
             font-size: 1.5rem;
             font-weight: 700;
             text-align: center;
-            color: #ffb74d;
+            color: var(--accent-orange);
         }
 
         .value-big {
-            font-size: 1.2rem;
-            font-weight: 600;
-            padding: 0.5rem 0;
+            font-size: 1.4rem;
+            font-weight: 700;
+            padding: 0.25rem 0;
         }
 
         .bilanz-gewonnen {
@@ -140,7 +141,7 @@
             background-color: rgba(255, 255, 255, 0.1);
             height: 6px;
             border-radius: 3px;
-            margin-top: 4px;
+            margin-top: 6px;
             overflow: hidden;
         }
 
@@ -152,11 +153,11 @@
         }
 
         .progress-bar.green {
-            background-color: var(--accent-green);
+            background-color: #4caf50;
         }
 
         .progress-bar.blue {
-            background-color: var(--accent-blue);
+            background-color: #2196f3;
         }
     </style>
 </head>
@@ -171,7 +172,6 @@
         <p style="grid-column: 1/-1; text-align:center; color:#9ca3af;">Lade Spieldaten...</p>
     </div>
 
-    <!-- Script-Aufruf bleibt am Ende -->
     <script src="script.js?v=1"></script>
 </body>
 </html>

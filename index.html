@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TV Kapellen 1919 - Dashboard</title>
+    <style>
+        :root {
+            --bg-dark: #0f172a; 
+            --card-bg: #111827; 
+            --card-inner-bg: #151f32; 
+            --text-main: #ffffff;
+            --text-muted: #94a3b8;
+            --accent-green: #10b981;
+            --accent-blue: #3b82f6;
+            --accent-orange: #f59e0b;
+            --border-color: #334155;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            padding: 2rem 1.5rem;
+            min-height: 100vh;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 2.5rem;
+        }
+
+        header h1 {
+            font-size: 2.8rem;
+            letter-spacing: 2px;
+            font-weight: 800;
+            color: var(--text-main);
+            margin-bottom: 0.5rem;
+        }
+
+        header p {
+            color: var(--accent-green);
+            font-size: 1.2rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            font-weight: 700;
+        }
+
+        /* Styling für den neuen Ansichten-Umschalter */
+        .controls-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+            max-width: 600px;
+            margin: 0 auto 3rem auto;
+        }
+
+        .view-switcher {
+            display: flex;
+            background-color: var(--card-bg);
+            padding: 0.4rem;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+        }
+
+        .view-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            padding: 0.6rem 1.5rem;
+            font-size: 1rem;
+            font-weight: 700;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .view-btn.active {
+            background-color: var(--accent-orange);
+            color: #000000;
+        }
+
+        .select-wrapper {
+            display: none; /* Wird nur bei Spieltag-Ansicht sichtbar */
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .select-wrapper label {
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+
+        select {
+            background-color: var(--card-bg);
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+            padding: 0.6rem 1.25rem;
+            font-size: 1rem;
+            font-weight: 700;
+            border-radius: 8px;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .app-wrapper {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+            gap: 2.5rem;
+            max-width: 1500px;
+            margin: 0 auto;
+        }
+
+        .player-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.6);
+        }
+
+        .player-card h2 {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--text-main);
+            margin-bottom: 0.4rem;
+        }
+
+        .player-card .club-tag {
+            font-size: 1rem;
+            color: var(--accent-green);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            font-weight: 700;
+            margin-bottom: 1.25rem;
+        }
+
+        .player-card .divider {
+            border-top: 2px solid var(--border-color);
+            margin-bottom: 1.25rem;
+        }
+
+        .inner-data-box {
+            background-color: var(--card-inner-bg);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 14px;
+            padding: 1.5rem;
+        }
+
+        .inner-title {
+            color: var(--accent-orange);
+            font-size: 1.15rem;
+            font-weight: 700;
+            margin-bottom: 1.25rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 0.6rem;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1.1fr 1fr;
+            gap: 1.5rem;
+        }
+
+        .stats-grid > div:first-child {
+            padding-right: 1.5rem;
+            border-right: 1px solid rgba(255, 255, 255, 0.15);
+        }
+
+        .stats-grid > div:last-child {
+            padding-left: 0.5rem;
+        }
+
+        .label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.7px;
+            margin-bottom: 0.4rem;
+            white-space: nowrap;
+        }
+
+        .value-avg-box {
+            background-color: var(--accent-orange);
+            border-radius: 6px;
+            padding: 0.35rem 0.75rem;
+            font-size: 1.5rem;
+            font-weight: 800;
+            text-align: center;
+            color: #000000; 
+            display: inline-block;
+            min-width: 95px;
+            margin-bottom: 0.75rem;
+        }
+
+        .value-big {
+            font-size: 1.7rem;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 0.75rem;
+            line-height: 1;
+        }
+
+        .bilanz-gewonnen {
+            color: var(--accent-green);
+        }
+
+        .bilanz-verloren {
+            color: #ef4444;
+        }
+
+        /* Goldene Abzeichen für 180er und Highfinish */
+        .special-badge {
+            display: inline-block;
+            background-color: rgba(245, 158, 11, 0.15);
+            border: 1px solid var(--accent-orange);
+            color: var(--accent-orange);
+            font-size: 0.75rem;
+            font-weight: 800;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            margin-top: 0.4rem;
+            margin-right: 0.4rem;
+            text-transform: uppercase;
+        }
+
+        .progress-bg {
+            background-color: rgba(255, 255, 255, 0.08);
+            height: 8px;
+            border-radius: 4px;
+            margin-top: 0.5rem;
+            overflow: hidden;
+            width: 100%;
+        }
+
+        .progress-bar {
+            height: 100%;
+            border-radius: 4px;
+            width: 0%;
+        }
+
+        .progress-bar.green { background-color: var(--accent-green); }
+        .progress-bar.blue { background-color: var(--accent-blue); }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>TV KAPELLEN 1919</h1>
+        <p id="sub-title">Saison 2026/27 — Kader-Dashboard</p>
+    </header>
+
+    <div class="controls-container">
+        <div class="view-switcher">
+            <button class="view-btn active" id="btn-gesamt" onclick="switchView('gesamt')">Gesamt-Kader</button>
+            <button class="view-btn" id="btn-spieltag" onclick="switchView('spieltag')">Spieltag-Highlights</button>
+        </div>
+        
+        <div class="select-wrapper" id="spieltag-select-wrapper">
+            <label for="spieltag-select">Spieltag wählen:</label>
+            <select id="spieltag-select" onchange="spieltagWechseln()">
+                <!-- Wird automatisch befüllt -->
+            </select>
+        </div>
+    </div>
+
+    <div class="app-wrapper" id="app-wrapper">
+        <p style="grid-column: 1/-1; text-align:center; color:#94a3b8;">Lade Live-Daten...</p>
+    </div>
+
+    <script src="script.js?v=2"></script>
+</body>
+</html>

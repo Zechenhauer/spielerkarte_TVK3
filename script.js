@@ -1,66 +1,69 @@
-// Der direkte Live-CSV Export-Link deines Google Sheets
 const CSV_URL = "https://docs.google.com/spreadsheets/d/1Sqq7iwE5ZcPbqO4J8A2rv3SLoZz8Mpyj9sj2tcAmZ8U/export?format=csv&gid=0";
 
-// Hilfsfunktion zum sauberen Trennen von CSV-Zeilen
-function csvToArray(text) {
-    let p = '', c = '', r = [];
-    let q = false;
-    let row = [''];
-    for (let i=0; i<text.length; i++) {
-        c = text[i];
-        if (c === '"') { q = !q; }
-        else if (c === ',' && !q) { row.push(''); }
-        else if ((c === '\r' || c === '\n') && !q) {
-            if (c === '\r' && text[i+1] === '\n') { i++; }
-            r.push(row);
-            row = [''];
-        } else { row[row.length-1] += c; }
-    }
-    if (row.length > 1 || row[0] !== '') { r.push(row); }
-    return r;
-}
-
-// Funktion verarbeitet die Tabellenzeilen
 function parseDartsCSV(text) {
-    const lines = csvToArray(text);
+    // Zeilen trennen und leere Zeilen entfernen
+    const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0);
     const spielerListe = [];
+    
+    let aktuellerSpieler = null;
 
-    if (lines.length < 2) return spielerListe;
+    lines.forEach(line => {
+        // Ignoriere die Einleitungstexte aus der Excel/CSV
+        if (line.startsWith('"') || line.includes("darstellung des aufbaus")) return;
 
-    // Spaltenzuordnung: Index 0: Name, 1: Matches, 2: Siege, 3: Niederlagen, 4: Legs_Gew, 5: Legs_Verl, 6: AVG
-    for (let i = 1; i < lines.length; i++) {
-        const row = lines[i];
-        if (!row[0] || row[0].trim() === "" || row[0] === "Name") continue;
+        // Wenn kein Komma da ist, handelt es sich um eine Zeile mit einem Spielernamen
+        if (!line.includes(',')) {
+            if (aktuellerSpieler) {
+                // Vorherigen Spieler speichern, wenn er zur Mannschaft 3 gehört
+                if (aktuellerSpieler.mannschaft === "3") {
+                    spielerListe.push(aktuellerSpieler);
+                }
+            }
+            // Neuen Spieler anlegen
+            aktuellerSpieler = {
+                name: line.replace(/"/g, ''), // Anführungszeichen entfernen
+                mannschaft: "",
+                matches: 0,
+                siege: 0,
+                niederlagen: 0,
+                legsGew: 0,
+                legsVerl: 0,
+                avg: 0.0
+            };
+        } else {
+            // Zeile aufteilen in Label und Wert
+            const parts = line.split(',');
+            const label = parts[0].trim().toLowerCase();
+            const value = parts[1] ? parts[1].trim().replace(/"/g, '') : "";
 
-        const spieler = {
-            name: row[0].trim(),
-            matches: parseInt(row[1]) || 0,
-            siege: parseInt(row[2]) || 0,
-            niederlagen: parseInt(row[3]) || 0,
-            legsGew: parseInt(row[4]) || 0,
-            legsVerl: parseInt(row[5]) || 0,
-            avg: parseFloat(row[6]?.replace(',', '.')) || 0.0
-        };
+            if (aktuellerSpieler) {
+                if (label.includes("mannschaft")) aktuellerSpieler.mannschaft = value;
+                if (label.includes("gesamt")) aktuellerSpieler.matches = parseInt(value) || 0;
+                if (label.includes("match gew") || label.includes("siege")) aktuellerSpieler.siege = parseInt(value) || 0;
+                if (label.includes("match verl") || label.includes("niederlagen")) aktuellerSpieler.niederlagen = parseInt(value) || 0;
+                if (label.includes("legs gew")) aktuellerSpieler.legsGew = parseInt(value) || 0;
+                if (label.includes("legs verl")) aktuellerSpieler.legsVerl = parseInt(value) || 0;
+                if (label.includes("avg") || label.includes("schnitt")) aktuellerSpieler.avg = parseFloat(value.replace(',', '.')) || 0.0;
+            }
+        }
+    });
 
-        spielerListe.push(spieler);
+    // Den letzten Spieler in der Schleife ebenfalls hinzufügen
+    if (aktuellerSpieler && aktuellerSpieler.mannschaft === "3") {
+        spielerListe.push(aktuellerSpieler);
     }
+
     return spielerListe;
 }
 
-// Funktion baut die HTML-Karten
 function generiereKarten(spielerDaten) {
-    // Sucht sicherheitshalber nach 'app-wrapper' ODER 'app-container' falls sich was verschoben hat
-    const wrapper = document.getElementById('app-wrapper') || document.getElementById('app-container');
-    
-    if (!wrapper) {
-        console.error("Fehler: Kein passender HTML-Container gefunden! Bitte index.html prüfen.");
-        return;
-    }
+    const wrapper = document.getElementById('app-wrapper');
+    if (!wrapper) return;
 
-    wrapper.innerHTML = ''; // Platzhalter löschen
+    wrapper.innerHTML = ''; 
 
     if (spielerDaten.length === 0) {
-        wrapper.innerHTML = '<p style="grid-column: 1/-1; text-align:center; color:#9ca3af;">Keine Spielerdaten gefunden.</p>';
+        wrapper.innerHTML = '<p style="grid-column: 1/-1; text-align:center; color:#9ca3af;">Keine Spieler für Mannschaft 3 gefunden.</p>';
         return;
     }
 
@@ -111,7 +114,6 @@ function generiereKarten(spielerDaten) {
     });
 }
 
-// Funktion, die den Ladevorgang startet
 function ladeDaten() {
     fetch(CSV_URL)
         .then(response => response.text())
@@ -120,15 +122,14 @@ function ladeDaten() {
             generiereKarten(spieler);
         })
         .catch(error => {
-            console.error('Fehler beim Laden der Spieldaten:', error);
-            const wrapper = document.getElementById('app-wrapper') || document.getElementById('app-container');
+            console.error('Fehler beim Laden:', error);
+            const wrapper = document.getElementById('app-wrapper');
             if (wrapper) {
-                wrapper.innerHTML = '<p style="grid-column: 1/-1; text-align:center; color:#ef4444;">Fehler beim Laden der Live-Daten aus Google Sheets.</p>';
+                wrapper.innerHTML = '<p style="grid-column: 1/-1; text-align:center; color:#ef4444;">Fehler beim Laden der Live-Daten.</p>';
             }
         });
 }
 
-// Wartet aktiv, bis das gesamte HTML geladen wurde, bevor das Skript startet
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', ladeDaten);
 } else {

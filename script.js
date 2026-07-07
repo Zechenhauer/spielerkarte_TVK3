@@ -1,55 +1,37 @@
-const CSV_URL = "daten.csv?v=1";
+const CSV_URL = "daten.csv?v=" + new Date().getTime(); // Verhindert Browser-Caching komplett
+
+// Hilfsfunktion zum sauberen Trennen von CSV-Spalten (auch bei Semikolons oder Kommas)
+function parseCSVLine(line) {
+    // Falls Excel mit Semikolon trennt, nutzen wir das, sonst das Komma
+    const separator = line.includes(';') ? ';' : ',';
+    return line.split(separator).map(cell => cell.trim().replace(/"/g, ''));
+}
 
 function parseDartsCSV(text) {
     const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0);
     const spielerListe = [];
-    
-    let aktuellerSpieler = null;
 
-    lines.forEach(line => {
-        // Ignoriere die Einleitungstexte aus der Excel/CSV
-        if (line.startsWith('"') || line.includes("darstellung des aufbaus") || line.includes("gewünschten Spielerkarten")) return;
+    if (lines.length < 2) return spielerListe;
 
-        // Wenn die Zeile kein Komma enthält, ist es ein Spielername
-        if (!line.includes(',')) {
-            if (aktuellerSpieler) {
-                // Falls der vorherige Spieler zur Mannschaft 3 gehört, speichern
-                if (String(aktuellerSpieler.mannschaft) === "3") {
-                    spielerListe.push(aktuellerSpieler);
-                }
-            }
-            // Neuen Spieler anlegen
-            aktuellerSpieler = {
-                name: line.replace(/"/g, ''),
-                mannschaft: "",
-                matches: 0,
-                siege: 0,
-                niederlagen: 0,
-                legsGew: 0,
-                legsVerl: 0,
-                avg: 0.0
-            };
-        } else {
-            // Zeile aufteilen in Label und Wert
-            const parts = line.split(',');
-            const label = parts[0].trim().toLowerCase();
-            const value = parts[1] ? parts[1].trim().replace(/"/g, '') : "";
+    // Wir gehen ab Zeile 2 (Index 1) durch, da Zeile 1 die Überschriften enthält
+    for (let i = 1; i < lines.length; i++) {
+        const rowData = parseCSVLine(lines[i]);
+        
+        // Falls die Zeile leer ist oder nicht mal einen Namen hat, überspringen
+        if (!rowData[0] || rowData[0] === "Name" || rowData[0] === "") continue;
 
-            if (aktuellerSpieler) {
-                if (label === "mannschaft") aktuellerSpieler.mannschaft = value;
-                if (label.includes("gesamt")) aktuellerSpieler.matches = parseInt(value) || 0;
-                if (label === "match gew") aktuellerSpieler.siege = parseInt(value) || 0;
-                if (label === "match verl") aktuellerSpieler.niederlagen = parseInt(value) || 0;
-                if (label === "legs gew") aktuellerSpieler.legsGew = parseInt(value) || 0;
-                if (label === "legs verl") aktuellerSpieler.legsVerl = parseInt(value) || 0;
-                if (label === "schnitt avg") aktuellerSpieler.avg = parseFloat(value.replace(',', '.')) || 0.0;
-            }
-        }
-    });
+        // Zuordnung basierend auf deinen Spalten: Name, Matches, Siege, Niederlagen, Legs_Gew, Legs_Verl, AVG
+        const spieler = {
+            name: rowData[0],
+            matches: parseInt(rowData[1]) || 0,
+            siege: parseInt(rowData[2]) || 0,
+            niederlagen: parseInt(rowData[3]) || 0,
+            legsGew: parseInt(rowData[4]) || 0,
+            legsVerl: parseInt(rowData[5]) || 0,
+            avg: parseFloat(rowData[6]?.replace(',', '.')) || 0.0
+        };
 
-    // Den letzten Spieler der Schleife prüfen und hinzufügen
-    if (aktuellerSpieler && String(aktuellerSpieler.mannschaft) === "3") {
-        spielerListe.push(aktuellerSpieler);
+        spielerListe.push(spieler);
     }
 
     return spielerListe;
@@ -59,10 +41,10 @@ function generiereKarten(spielerDaten) {
     const wrapper = document.getElementById('app-wrapper');
     if (!wrapper) return;
 
-    wrapper.innerHTML = ''; 
+    wrapper.innerHTML = ''; // "Lade Live-Daten..." Platzhalter entfernen
 
     if (spielerDaten.length === 0) {
-        wrapper.innerHTML = '<p style="grid-column: 1/-1; text-align:center; color:#9ca3af;">Keine Spieler für Mannschaft 3 in der CSV gefunden.</p>';
+        wrapper.innerHTML = '<p style="grid-column: 1/-1; text-align:center; color:#9ca3af;">Keine Spieler in der daten.csv gefunden.</p>';
         return;
     }
 
@@ -116,7 +98,7 @@ function generiereKarten(spielerDaten) {
 function ladeDaten() {
     fetch(CSV_URL)
         .then(response => {
-            if (!response.ok) throw new Error("Datei nicht gefunden");
+            if (!response.ok) throw new Error("daten.csv konnte nicht geladen werden");
             return response.text();
         })
         .then(data => {
@@ -127,7 +109,7 @@ function ladeDaten() {
             console.error('Fehler beim Laden:', error);
             const wrapper = document.getElementById('app-wrapper');
             if (wrapper) {
-                wrapper.innerHTML = '<p style="grid-column: 1/-1; text-align:center; color:#ef4444;">Fehler beim Laden der daten.csv.</p>';
+                wrapper.innerHTML = '<p style="grid-column: 1/-1; text-align:center; color:#ef4444;">Fehler beim Laden der Spieldaten.</p>';
             }
         });
 }

@@ -1,7 +1,7 @@
 // Der direkte Live-CSV Export-Link deines Google Sheets
 const CSV_URL = "https://docs.google.com/spreadsheets/d/1Sqq7iwE5ZcPbqO4J8A2rv3SLoZz8Mpyj9sj2tcAmZ8U/export?format=csv&gid=0";
 
-// Hilfsfunktion zum sauberen Trennen von CSV-Zeilen (berücksichtigt eventuelle Anführungszeichen)
+// Hilfsfunktion zum sauberen Trennen von CSV-Zeilen
 function csvToArray(text) {
     let p = '', c = '', r = [];
     let q = false;
@@ -27,8 +27,7 @@ function parseDartsCSV(text) {
 
     if (lines.length < 2) return spielerListe;
 
-    // Spaltenzuordnung laut deinem Tabellenkopf:
-    // Index 0: Name, 1: Matches, 2: Siege, 3: Niederlagen, 4: Legs_Gew, 5: Legs_Verl, 6: AVG
+    // Spaltenzuordnung: Index 0: Name, 1: Matches, 2: Siege, 3: Niederlagen, 4: Legs_Gew, 5: Legs_Verl, 6: AVG
     for (let i = 1; i < lines.length; i++) {
         const row = lines[i];
         if (!row[0] || row[0].trim() === "" || row[0] === "Name") continue;
@@ -50,7 +49,14 @@ function parseDartsCSV(text) {
 
 // Funktion baut die HTML-Karten
 function generiereKarten(spielerDaten) {
-    const wrapper = document.getElementById('app-wrapper');
+    // Sucht sicherheitshalber nach 'app-wrapper' ODER 'app-container' falls sich was verschoben hat
+    const wrapper = document.getElementById('app-wrapper') || document.getElementById('app-container');
+    
+    if (!wrapper) {
+        console.error("Fehler: Kein passender HTML-Container gefunden! Bitte index.html prüfen.");
+        return;
+    }
+
     wrapper.innerHTML = ''; // Platzhalter löschen
 
     if (spielerDaten.length === 0) {
@@ -59,7 +65,6 @@ function generiereKarten(spielerDaten) {
     }
 
     spielerDaten.forEach(spieler => {
-        // Berechnungen für die Fortschrittsbalken & Quoten
         const winQuote = spieler.matches > 0 ? Math.round((spieler.siege / spieler.matches) * 100) : 0;
         const totalLegs = spieler.legsGew + spieler.legsVerl;
         const legQuote = totalLegs > 0 ? Math.round((spieler.legsGew / totalLegs) * 100) : 0;
@@ -106,8 +111,8 @@ function generiereKarten(spielerDaten) {
     });
 }
 
-// Beim Laden der Seite Daten abrufen und anzeigen
-document.addEventListener('DOMContentLoaded', () => {
+// Funktion, die den Ladevorgang startet
+function ladeDaten() {
     fetch(CSV_URL)
         .then(response => response.text())
         .then(data => {
@@ -116,6 +121,16 @@ document.addEventListener('DOMContentLoaded', () => {
         })
         .catch(error => {
             console.error('Fehler beim Laden der Spieldaten:', error);
-            document.getElementById('app-wrapper').innerHTML = '<p style="grid-column: 1/-1; text-align:center; color:#ef4444;">Fehler beim Laden der Live-Daten aus Google Sheets.</p>';
+            const wrapper = document.getElementById('app-wrapper') || document.getElementById('app-container');
+            if (wrapper) {
+                wrapper.innerHTML = '<p style="grid-column: 1/-1; text-align:center; color:#ef4444;">Fehler beim Laden der Live-Daten aus Google Sheets.</p>';
+            }
         });
-});
+}
+
+// Wartet aktiv, bis das gesamte HTML geladen wurde, bevor das Skript startet
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', ladeDaten);
+} else {
+    ladeDaten();
+}

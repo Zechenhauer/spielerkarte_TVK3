@@ -1,27 +1,121 @@
-body { background-color: #0f172a; color: #f3f4f6; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 20px; }
+// Der direkte Live-CSV Export-Link deines Google Sheets
+const CSV_URL = "https://docs.google.com/spreadsheets/d/1Sqq7iwE5ZcPbqO4J8A2rv3SLoZz8Mpyj9sj2tcAmZ8U/export?format=csv&gid=0";
 
-.app-wrapper { max-width: 600px; margin: 0 auto; } /* Zentriert und begrenzt die Breite */
+// Hilfsfunktion zum sauberen Trennen von CSV-Zeilen (berücksichtigt eventuelle Anführungszeichen)
+function csvToArray(text) {
+    let p = '', c = '', r = [];
+    let q = false;
+    let row = [''];
+    for (let i=0; i<text.length; i++) {
+        c = text[i];
+        if (c === '"') { q = !q; }
+        else if (c === ',' && !q) { row.push(''); }
+        else if ((c === '\r' || c === '\n') && !q) {
+            if (c === '\r' && text[i+1] === '\n') { i++; }
+            r.push(row);
+            row = [''];
+        } else { row[row.length-1] += c; }
+    }
+    if (row.length > 1 || row[0] !== '') { r.push(row); }
+    return r;
+}
 
-header { text-align: center; margin-bottom: 25px; }
-header h1 { color: #f59e0b; margin-bottom: 5px; }
-header p { color: #9ca3af; font-size: 0.9rem; }
+// Funktion verarbeitet die Tabellenzeilen
+function parseDartsCSV(text) {
+    const lines = csvToArray(text);
+    const spielerListe = [];
 
-.player-card { background: #1e293b; border-radius: 12px; padding: 20px; margin-bottom: 20px; border: 1px solid #334155; }
-.header h1 { font-size: 1.3rem; color: #ffffff; margin: 0; }
-.header p { color: #10b981; font-size: 0.75rem; font-weight: bold; margin-bottom: 15px; }
+    if (lines.length < 2) return spielerListe;
 
-.stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-.label { font-size: 0.6rem; color: #9ca3af; margin: 10px 0 2px; text-transform: uppercase; }
-.value-big { font-size: 1.1rem; font-weight: bold; }
+    // Spaltenzuordnung laut deinem Tabellenkopf:
+    // Index 0: Name, 1: Matches, 2: Siege, 3: Niederlagen, 4: Legs_Gew, 5: Legs_Verl, 6: AVG
+    for (let i = 1; i < lines.length; i++) {
+        const row = lines[i];
+        if (!row[0] || row[0].trim() === "" || row[0] === "Name") continue;
 
-/* AVG Wert: Orange unterlegt */
-.value-avg-box { font-size: 1.2rem; color: #0f172a; font-weight: bold; background-color: #f59e0b; padding: 2px 6px; border-radius: 4px; display: inline-block; }
+        const spieler = {
+            name: row[0].trim(),
+            matches: parseInt(row[1]) || 0,
+            siege: parseInt(row[2]) || 0,
+            niederlagen: parseInt(row[3]) || 0,
+            legsGew: parseInt(row[4]) || 0,
+            legsVerl: parseInt(row[5]) || 0,
+            avg: parseFloat(row[6]?.replace(',', '.')) || 0.0
+        };
 
-/* Bilanz: Gewonnen Grün, Verloren Rot */
-.bilanz-gewonnen { color: #10b981; font-weight: bold; }
-.bilanz-verloren { color: #ef4444; font-weight: bold; }
+        spielerListe.push(spieler);
+    }
+    return spielerListe;
+}
 
-.progress-bg { background: #334155; height: 6px; border-radius: 3px; margin-top: 4px; }
-.progress-bar { height: 100%; border-radius: 3px; }
-.green { background: #10b981; }
-.blue { background: #3b82f6; }
+// Funktion baut die HTML-Karten
+function generiereKarten(spielerDaten) {
+    const wrapper = document.getElementById('app-wrapper');
+    wrapper.innerHTML = ''; // Platzhalter löschen
+
+    if (spielerDaten.length === 0) {
+        wrapper.innerHTML = '<p style="grid-column: 1/-1; text-align:center; color:#9ca3af;">Keine Spielerdaten gefunden.</p>';
+        return;
+    }
+
+    spielerDaten.forEach(spieler => {
+        // Berechnungen für die Fortschrittsbalken & Quoten
+        const winQuote = spieler.matches > 0 ? Math.round((spieler.siege / spieler.matches) * 100) : 0;
+        const totalLegs = spieler.legsGew + spieler.legsVerl;
+        const legQuote = totalLegs > 0 ? Math.round((spieler.legsGew / totalLegs) * 100) : 0;
+
+        const card = document.createElement('div');
+        card.className = 'player-card';
+
+        card.innerHTML = `
+            <div>
+                <h2>${spieler.name}</h2>
+                <div class="status">TV Kapellen 3</div>
+            </div>
+            
+            <div class="stats-grid">
+                <div>
+                    <div class="label">3-Dart-Avg</div>
+                    <div class="value-avg-box">${spieler.avg.toFixed(2)}</div>
+                </div>
+                <div>
+                    <div class="label">Matches (S/N)</div>
+                    <div class="value-big">
+                        <span class="bilanz-gewonnen">${spieler.siege}</span> / 
+                        <span class="bilanz-verloren">${spieler.niederlagen}</span>
+                    </div>
+                </div>
+                <div>
+                    <div class="label">Match-Quote</div>
+                    <div class="value-big">${winQuote}%</div>
+                    <div class="progress-bg">
+                        <div class="progress-bar green" style="width: ${winQuote}%"></div>
+                    </div>
+                </div>
+                <div>
+                    <div class="label">Leg-Verhältnis</div>
+                    <div class="value-big">${spieler.legsGew}:${spieler.legsVerl}</div>
+                    <div class="progress-bg">
+                        <div class="progress-bar blue" style="width: ${legQuote}%"></div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        wrapper.appendChild(card);
+    });
+}
+
+// Beim Laden der Seite Daten abrufen und anzeigen
+document.addEventListener('DOMContentLoaded', () => {
+    fetch(CSV_URL)
+        .then(response => response.text())
+        .then(data => {
+            const spieler = parseDartsCSV(data);
+            generiereKarten(spieler);
+        })
+        .catch(error => {
+            console.error('Fehler beim Laden der Spieldaten:', error);
+            document.getElementById('app-wrapper').innerHTML = '<p style="grid-column: 1/-1; text-align:center; color:#ef4444;">Fehler beim Laden der Live-Daten aus Google Sheets.</p>';
+        });
+});

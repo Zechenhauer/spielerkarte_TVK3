@@ -1,4 +1,4 @@
-const CSV_URL = "daten.csv";
+const CSV_URL = "daten.csv?v=1";
 
 function parseDartsCSV(text) {
     const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0);

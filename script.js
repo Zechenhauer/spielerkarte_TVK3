@@ -1,66 +1,121 @@
-const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTPZoZHS_zlVorc44OgCR4P3sffrTjVo7sEUiZn-Tu_Wyx3L5yeAXXmLwSFRdij1ijKjhxmfTPnRWNe/pub?gid=0&single=true&output=csv";
+// Der direkte Live-CSV Export-Link deines Google Sheets
+const CSV_URL = "https://docs.google.com/spreadsheets/d/1Sqq7iwE5ZcPbqO4J8A2rv3SLoZz8Mpyj9sj2tcAmZ8U/export?format=csv&gid=0";
 
-async function loadData() {
-    try {
-        const response = await fetch(CSV_URL);
-        if (!response.ok) throw new Error('Netzwerkfehler');
-        const text = await response.text();
-        const rows = text.split('\n').slice(1);
-        
-        // 1. Daten in ein Array von Objekten umwandeln
-        let playerList = rows.map(row => {
-            const cols = row.split(',').map(c => c.trim());
-            if (cols.length < 7) return null;
-            
-            return {
-                name: cols[0],
-                matches: parseInt(cols[1]) || 0,
-                siege: parseInt(cols[2]) || 0,
-                niederlagen: parseInt(cols[3]) || 0,
-                legsGew: parseInt(cols[4]) || 0,
-                legsVerl: parseInt(cols[5]) || 0,
-                avg: parseFloat(cols[6].replace(',', '.')) || 0 // Komma zu Punkt für Sicherheit
-            };
-        }).filter(p => p !== null);
-
-        // 2. Sortieren nach AVG (absteigend: Höchster Wert zuerst)
-        playerList.sort((a, b) => b.avg - a.avg);
-
-        // 3. Karten rendern
-        const container = document.getElementById('app-container');
-        container.innerHTML = ""; 
-
-        playerList.forEach(p => {
-            const winRate = p.matches > 0 ? ((p.siege / p.matches) * 100).toFixed(1) : 0;
-            const totalLegs = p.legsGew + p.legsVerl;
-            const legRate = totalLegs > 0 ? ((p.legsGew / totalLegs) * 100).toFixed(1) : 0;
-
-            container.innerHTML += `
-                <div class="player-card">
-                    <div class="header"><h1>${p.name}</h1><p>TV KAPELLEN 1919</p></div>
-                    <div class="stats-grid">
-                        <div class="col">
-                            <p class="label">MATCHES GESAMT</p><div class="value-big">${p.matches}</div>
-                            <p class="label">BILANZ (G : V)</p>
-                            <div class="value-big">
-                                <span class="bilanz-gewonnen">${p.siege}</span> : <span class="bilanz-verloren">${p.niederlagen}</span>
-                            </div>
-                            <p class="label">WIN-RATE (${winRate}%)</p>
-                            <div class="progress-bg"><div class="progress-bar green" style="width: ${winRate}%"></div></div>
-                        </div>
-                        <div class="col">
-                            <p class="label">3-DART-SCHNITT (AVG)</p>
-                            <div class="value-avg-box">${p.avg.toFixed(2)}</div>
-                            <p class="label">LEGS (GEW : VERL)</p><div class="value-big">${p.legsGew} : ${p.legsVerl}</div>
-                            <p class="label">LEG-RATE (${legRate}%)</p>
-                            <div class="progress-bg"><div class="progress-bar blue" style="width: ${legRate}%"></div></div>
-                        </div>
-                    </div>
-                </div>`;
-        });
-    } catch (e) {
-        console.error("Datenfehler:", e);
-        document.getElementById('app-container').innerHTML = '<p style="text-align: center; color: #ef4444;">Fehler beim Laden der Daten.</p>';
+// Hilfsfunktion zum sauberen Trennen von CSV-Zeilen (berücksichtigt eventuelle Anführungszeichen)
+function csvToArray(text) {
+    let p = '', c = '', r = [];
+    let q = false;
+    let row = [''];
+    for (let i=0; i<text.length; i++) {
+        c = text[i];
+        if (c === '"') { q = !q; }
+        else if (c === ',' && !q) { row.push(''); }
+        else if ((c === '\r' || c === '\n') && !q) {
+            if (c === '\r' && text[i+1] === '\n') { i++; }
+            r.push(row);
+            row = [''];
+        } else { row[row.length-1] += c; }
     }
+    if (row.length > 1 || row[0] !== '') { r.push(row); }
+    return r;
 }
-loadData();
+
+// Funktion verarbeitet die Tabellenzeilen
+function parseDartsCSV(text) {
+    const lines = csvToArray(text);
+    const spielerListe = [];
+
+    if (lines.length < 2) return spielerListe;
+
+    // Spaltenzuordnung laut deinem Tabellenkopf:
+    // Index 0: Name, 1: Matches, 2: Siege, 3: Niederlagen, 4: Legs_Gew, 5: Legs_Verl, 6: AVG
+    for (let i = 1; i < lines.length; i++) {
+        const row = lines[i];
+        if (!row[0] || row[0].trim() === "" || row[0] === "Name") continue;
+
+        const spieler = {
+            name: row[0].trim(),
+            matches: parseInt(row[1]) || 0,
+            siege: parseInt(row[2]) || 0,
+            niederlagen: parseInt(row[3]) || 0,
+            legsGew: parseInt(row[4]) || 0,
+            legsVerl: parseInt(row[5]) || 0,
+            avg: parseFloat(row[6]?.replace(',', '.')) || 0.0
+        };
+
+        spielerListe.push(spieler);
+    }
+    return spielerListe;
+}
+
+// Funktion baut die HTML-Karten
+function generiereKarten(spielerDaten) {
+    const wrapper = document.getElementById('app-wrapper');
+    wrapper.innerHTML = ''; // Platzhalter löschen
+
+    if (spielerDaten.length === 0) {
+        wrapper.innerHTML = '<p style="grid-column: 1/-1; text-align:center; color:#9ca3af;">Keine Spielerdaten gefunden.</p>';
+        return;
+    }
+
+    spielerDaten.forEach(spieler => {
+        // Berechnungen für die Fortschrittsbalken & Quoten
+        const winQuote = spieler.matches > 0 ? Math.round((spieler.siege / spieler.matches) * 100) : 0;
+        const totalLegs = spieler.legsGew + spieler.legsVerl;
+        const legQuote = totalLegs > 0 ? Math.round((spieler.legsGew / totalLegs) * 100) : 0;
+
+        const card = document.createElement('div');
+        card.className = 'player-card';
+
+        card.innerHTML = `
+            <div>
+                <h2>${spieler.name}</h2>
+                <div class="status">TV Kapellen 3</div>
+            </div>
+            
+            <div class="stats-grid">
+                <div>
+                    <div class="label">3-Dart-Avg</div>
+                    <div class="value-avg-box">${spieler.avg.toFixed(2)}</div>
+                </div>
+                <div>
+                    <div class="label">Matches (S/N)</div>
+                    <div class="value-big">
+                        <span class="bilanz-gewonnen">${spieler.siege}</span> / 
+                        <span class="bilanz-verloren">${spieler.niederlagen}</span>
+                    </div>
+                </div>
+                <div>
+                    <div class="label">Match-Quote</div>
+                    <div class="value-big">${winQuote}%</div>
+                    <div class="progress-bg">
+                        <div class="progress-bar green" style="width: ${winQuote}%"></div>
+                    </div>
+                </div>
+                <div>
+                    <div class="label">Leg-Verhältnis</div>
+                    <div class="value-big">${spieler.legsGew}:${spieler.legsVerl}</div>
+                    <div class="progress-bg">
+                        <div class="progress-bar blue" style="width: ${legQuote}%"></div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        wrapper.appendChild(card);
+    });
+}
+
+// Beim Laden der Seite Daten abrufen und anzeigen
+document.addEventListener('DOMContentLoaded', () => {
+    fetch(CSV_URL)
+        .then(response => response.text())
+        .then(data => {
+            const spieler = parseDartsCSV(data);
+            generiereKarten(spieler);
+        })
+        .catch(error => {
+            console.error('Fehler beim Laden der Spieldaten:', error);
+            document.getElementById('app-wrapper').innerHTML = '<p style="grid-column: 1/-1; text-align:center; color:#ef4444;">Fehler beim Laden der Live-Daten aus Google Sheets.</p>';
+        });
+});

@@ -1,23 +1,4 @@
-// Lädt die Datei direkt aus deinem GitHub-Ordner
 const CSV_URL = "daten.csv";
-
-function csvToArray(text) {
-    let p = '', c = '', r = [];
-    let q = false;
-    let row = [''];
-    for (let i=0; i<text.length; i++) {
-        c = text[i];
-        if (c === '"') { q = !q; }
-        else if (c === ',' && !q) { row.push(''); }
-        else if ((c === '\r' || c === '\n') && !q) {
-            if (c === '\r' && text[i+1] === '\n') { i++; }
-            r.push(row);
-            row = [''];
-        } else { row[row.length-1] += c; }
-    }
-    if (row.length > 1 || row[0] !== '') { r.push(row); }
-    return r;
-}
 
 function parseDartsCSV(text) {
     const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0);
@@ -26,16 +7,18 @@ function parseDartsCSV(text) {
     let aktuellerSpieler = null;
 
     lines.forEach(line => {
-        // Ignoriere Einleitungstexte
-        if (line.startsWith('"') || line.includes("darstellung des aufbaus")) return;
+        // Ignoriere die Einleitungstexte aus der Excel/CSV
+        if (line.startsWith('"') || line.includes("darstellung des aufbaus") || line.includes("gewünschten Spielerkarten")) return;
 
+        // Wenn die Zeile kein Komma enthält, ist es ein Spielername
         if (!line.includes(',')) {
             if (aktuellerSpieler) {
-                // Filtere auf TV Kapellen 3
-                if (aktuellerSpieler.mannschaft === "3") {
+                // Falls der vorherige Spieler zur Mannschaft 3 gehört, speichern
+                if (String(aktuellerSpieler.mannschaft) === "3") {
                     spielerListe.push(aktuellerSpieler);
                 }
             }
+            // Neuen Spieler anlegen
             aktuellerSpieler = {
                 name: line.replace(/"/g, ''),
                 mannschaft: "",
@@ -47,23 +30,25 @@ function parseDartsCSV(text) {
                 avg: 0.0
             };
         } else {
+            // Zeile aufteilen in Label und Wert
             const parts = line.split(',');
             const label = parts[0].trim().toLowerCase();
             const value = parts[1] ? parts[1].trim().replace(/"/g, '') : "";
 
             if (aktuellerSpieler) {
-                if (label.includes("mannschaft")) aktuellerSpieler.mannschaft = value;
+                if (label === "mannschaft") aktuellerSpieler.mannschaft = value;
                 if (label.includes("gesamt")) aktuellerSpieler.matches = parseInt(value) || 0;
-                if (label.includes("match gew") || label.includes("siege")) aktuellerSpieler.siege = parseInt(value) || 0;
-                if (label.includes("match verl") || label.includes("niederlagen")) aktuellerSpieler.niederlagen = parseInt(value) || 0;
-                if (label.includes("legs gew")) aktuellerSpieler.legsGew = parseInt(value) || 0;
-                if (label.includes("legs verl")) aktuellerSpieler.legsVerl = parseInt(value) || 0;
-                if (label.includes("avg") || label.includes("schnitt")) aktuellerSpieler.avg = parseFloat(value.replace(',', '.')) || 0.0;
+                if (label === "match gew") aktuellerSpieler.siege = parseInt(value) || 0;
+                if (label === "match verl") aktuellerSpieler.niederlagen = parseInt(value) || 0;
+                if (label === "legs gew") aktuellerSpieler.legsGew = parseInt(value) || 0;
+                if (label === "legs verl") aktuellerSpieler.legsVerl = parseInt(value) || 0;
+                if (label === "schnitt avg") aktuellerSpieler.avg = parseFloat(value.replace(',', '.')) || 0.0;
             }
         }
     });
 
-    if (aktuellerSpieler && aktuellerSpieler.mannschaft === "3") {
+    // Den letzten Spieler der Schleife prüfen und hinzufügen
+    if (aktuellerSpieler && String(aktuellerSpieler.mannschaft) === "3") {
         spielerListe.push(aktuellerSpieler);
     }
 
@@ -77,7 +62,7 @@ function generiereKarten(spielerDaten) {
     wrapper.innerHTML = ''; 
 
     if (spielerDaten.length === 0) {
-        wrapper.innerHTML = '<p style="grid-column: 1/-1; text-align:center; color:#9ca3af;">Keine Spieler für Mannschaft 3 gefunden.</p>';
+        wrapper.innerHTML = '<p style="grid-column: 1/-1; text-align:center; color:#9ca3af;">Keine Spieler für Mannschaft 3 in der CSV gefunden.</p>';
         return;
     }
 
@@ -131,7 +116,7 @@ function generiereKarten(spielerDaten) {
 function ladeDaten() {
     fetch(CSV_URL)
         .then(response => {
-            if (!response.ok) throw new Error("Datei konnte nicht geladen werden");
+            if (!response.ok) throw new Error("Datei nicht gefunden");
             return response.text();
         })
         .then(data => {
@@ -142,7 +127,7 @@ function ladeDaten() {
             console.error('Fehler beim Laden:', error);
             const wrapper = document.getElementById('app-wrapper');
             if (wrapper) {
-                wrapper.innerHTML = '<p style="grid-column: 1/-1; text-align:center; color:#ef4444;">Fehler beim Laden der Spieldaten im Repository.</p>';
+                wrapper.innerHTML = '<p style="grid-column: 1/-1; text-align:center; color:#ef4444;">Fehler beim Laden der daten.csv.</p>';
             }
         });
 }

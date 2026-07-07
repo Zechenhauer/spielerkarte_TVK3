@@ -7,13 +7,15 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+
     <header>
         <h1>TV KAPELLEN 3</h1>
         <p>Saison-Kader & Leistungsdaten</p>
     </header>
 
-    <div id="app-container">
-        <!-- Spieler-Karten werden hier dynamisch geladen -->
+    <!-- Hier fließen die Karten über das CSS-Grid nebeneinander rein -->
+    <div class="app-wrapper" id="app-wrapper">
+        <p style="grid-column: 1/-1; text-align:center; color:#9ca3af;">Lade Live-Daten aus Google Sheets...</p>
     </div>
 
     <script src="script.js"></script>

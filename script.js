@@ -317,7 +317,7 @@ function renderSpieltag(daten, n_spieltag) {
                         ${specialsHTML !== '' ? `<div class="label" style="margin-top: 0.8rem;">Specials</div><div style="margin-top: 0.25rem;">${specialsHTML}</div>` : ''}
                     </div>
                     <div>
-                        <div class="label">Abend-Schnitt (Gesamt-AVG)</div>
+                        <div class="label">Gesamt-AVG</div>
                         <div><div class="value-avg-box">${s.avgFinal > 0 ? s.avgFinal.toFixed(2) : "0.00"}</div></div>
                         
                         ${avgAufteilungHTML}

@@ -217,7 +217,7 @@ function renderKader(daten) {
                         <div class="progress-bg"><div class="progress-bar green" style="width: ${winQuote}%"></div></div>
                     </div>
                     <div>
-                        <div class="label">3-Dart-Schnitt (AVG)</div>
+                        <div class="label">AVG</div>
                         <div><div class="value-avg-box">${spieler.avg.toFixed(2)}</div></div>
                         <div class="label" style="margin-top: 0.6rem;">Legs (Gew : Verl)</div>
                         <div class="value-big">${spieler.legsGew} : ${spieler.legsVerl}</div>
@@ -309,12 +309,12 @@ function renderSpieltag(daten, n_spieltag) {
                 <div class="inner-title">Spieltag ${spieltagSelect.value} vs. ${s.gegnerTeam}${endergebnisText}</div>
                 <div class="stats-grid">
                     <div>
-                        <div class="label">Spiele am Abend</div>
+                        <div class="label">Spiele</div>
                         <div class="value-big">${s.matches}</div>
                         
                         ${spielAufteilungHTML}
 
-                        <div class="label" style="margin-top: 0.8rem;">Abend-Bilanz</div>
+                        <div class="label" style="margin-top: 0.8rem;">Spiele-Bilanz</div>
                         <div class="value-big"><span class="bilanz-gewonnen">${s.siege}</span> : <span class="bilanz-verloren">${s.niederlagen}</span></div>
                         <div class="label" style="margin-top: 0.8rem;">Win-Rate (${winQuote}%)</div>
                         <div class="progress-bg"><div class="progress-bar green" style="width: ${winQuote}%"></div></div>

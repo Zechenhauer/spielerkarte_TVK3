@@ -217,7 +217,7 @@ function renderKader(daten) {
                         <div class="progress-bg"><div class="progress-bar green" style="width: ${winQuote}%"></div></div>
                     </div>
                     <div>
-                        <div class="label">3-Dart-Schnitt (AVG)</div>
+                        <div class="label">AVG</div>
                         <div><div class="value-avg-box">${spieler.avg.toFixed(2)}</div></div>
                         <div class="label" style="margin-top: 0.6rem;">Legs (Gew : Verl)</div>
                         <div class="value-big">${spieler.legsGew} : ${spieler.legsVerl}</div>
